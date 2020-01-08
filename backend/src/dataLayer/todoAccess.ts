@@ -8,10 +8,9 @@ import { TodoItem } from '../models/TodoItem'
 export class TodoAccess {
   constructor(
     private readonly docClient: DocumentClient = createDynamoDBClient(),
-    private readonly userTodosTable = process.env.USERS_TODO_TABLE //private readonly todosTable = process.env.TODOS_TABLE, //private readonly bucketName = process.env.TODOS_S3_BUCKET, //private readonly expires = process.env.SIGNED_URL_EXPIRATION,
-  ) //private readonly thumbnailBucketName = process.env.THUMBNAILS_S3_BUCKET,
-  //private readonly region = process.env.BUCKET_REGION
-  {}
+    private readonly userTodosTable = process.env.USERS_TODO_TABLE,
+    private readonly todosTable = process.env.TODOS_TABLE //private readonly bucketName = process.env.TODOS_S3_BUCKET, //private readonly expires = process.env.SIGNED_URL_EXPIRATION, //private readonly thumbnailBucketName = process.env.THUMBNAILS_S3_BUCKET, //private readonly region = process.env.BUCKET_REGION
+  ) {}
 
   async getUserTodos(userId: string): Promise<TodoItem[]> {
     var params = {
@@ -31,6 +30,31 @@ export class TodoAccess {
     const items = result.Items
     //logger.info('getUserTodos', items)
     return items as TodoItem[]
+  }
+  async createTodo(todo: TodoItem): Promise<TodoItem> {
+    await this.docClient
+      .put({
+        TableName: this.todosTable,
+        Item: todo
+      })
+      .promise()
+
+    await this.docClient
+      .put({
+        TableName: this.userTodosTable,
+        Item: {
+          userId: todo.userId,
+          todoId: todo.todoId,
+          createdAt: todo.createdAt,
+          name: todo.name,
+          dueDate: todo.dueDate,
+          done: todo.done,
+          attachmentUrl: todo.attachmentUrl
+        }
+      })
+      .promise()
+
+    return todo
   }
 }
 

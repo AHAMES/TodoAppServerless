@@ -5,6 +5,24 @@ plugins:
   - serverless-webpack
   - serverless-iam-roles-per-function
 
+custom:
+  webpack:
+    webpackConfig: ./webpack.config.js
+    includeModules: true
+  documentation:
+    api:
+      info:
+        version: v1.0.0
+        title: Todo API
+        description: Serverless app that keeps your todo recorded
+    models:
+      - name: TodoRequest
+        contentType: application/json
+        schema: ${file(models/create-todo-request.json)}
+      - name: UpdateTodoRequest
+        contentType: application/json
+        schema: ${file(models/update-todo-request.json)}
+
 provider:
   name: aws
   runtime: nodejs8.10
@@ -17,6 +35,24 @@ provider:
     USERS_TODO_TABLE: Users-Todo-${self:provider.stage}
     TODOS_S3_BUCKET: ahs-todos-serverless-${self:provider.stage}
     TODO_ID_INDEX: UserIdIndex
+    THUMBNAILS_S3_BUCKET: ahs-todos-thumbnails-${self:provider.stage}
+    SIGNED_URL_EXPIRATION: 300
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - s3:PutObject
+          - s3:GetObject
+        Resource: 'arn:aws:s3:::${self:provider.environment.THUMBNAILS_S3_BUCKET}/*'
+      - Effect: Allow
+        Action:
+          - s3:PutObject
+          - s3:GetObject
+        Resource: arn:aws:s3:::${self:provider.environment.TODOS_S3_BUCKET}/*
+      - Effect: Allow
+        Action:
+          - xray:PutTraceSegments
+        Resource:
+          - '*'
 functions:
   Auth:
     handler: src/lambda/auth/auth0Authorizer.handler
@@ -29,6 +65,7 @@ functions:
           method: get
           path: todos
           cors: true
+    iamRoleStatementsInherit: true
     iamRoleStatements:
       - Effect: Allow
         Action:
@@ -37,7 +74,7 @@ functions:
       - Effect: Allow
         Action:
           - dynamodb:Query
-        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.USERS_TODO_TABLE}/index/${self:provider.environment.TODO_ID_INDEX}   
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.USERS_TODO_TABLE}/index/${self:provider.environment.TODO_ID_INDEX}
   # TODO: Configure this function
 
   CreateTodo:
@@ -46,7 +83,25 @@ functions:
       - http:
           method: post
           path: todos
+          authorizer: Auth
+          cors: true
+          reqValidatorName: RequestBodyValidator
+          documentation:
+            summary: Creates todo
+            description: Creates todo
+            requestModels:
+              'application/json': TodoRequest
 
+    iamRoleStatementsInherit: true
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:PutItem
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
+      - Effect: Allow
+        Action:
+          - dynamodb:PutItem
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.USERS_TODO_TABLE}
   # TODO: Configure this function
   UpdateTodo:
     handler: src/lambda/http/updateTodo.handler
@@ -73,6 +128,17 @@ functions:
 
 resources:
   Resources:
+    GatewayResponseDefault4XX:
+      Type: AWS::ApiGateway::GatewayResponse
+      Properties:
+        ResponseParameters:
+          gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+          gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+          gatewayresponse.header.Access-Control-Allow-Methods: "'GET,OPTIONS,POST'"
+        ResponseType: DEFAULT_4XX
+        RestApiId:
+          Ref: ApiGatewayRestApi
+
     TodosDynamoDBTable:
       Type: AWS::DynamoDB::Table
       Properties:
@@ -95,15 +161,14 @@ resources:
           - AttributeName: todoId
             KeyType: HASH
         BillingMode: PAY_PER_REQUEST
-        TableName: ${self:provider.environment.USERS_TODO_TABLE}
         StreamSpecification:
           StreamViewType: NEW_IMAGE
         TableName: ${self:provider.environment.USERS_TODO_TABLE}
         GlobalSecondaryIndexes:
           - IndexName: ${self:provider.environment.TODO_ID_INDEX}
             KeySchema:
-            - AttributeName: todoId
-              KeyType: HASH
+              - AttributeName: todoId
+                KeyType: HASH
             Projection:
               ProjectionType: ALL
 
@@ -114,4 +179,4 @@ resources:
         RestApiId:
           Ref: ApiGatewayRestApi
         ValidateRequestBody: true
-        ValidateRequestParameters: false  
+        ValidateRequestParameters: false
