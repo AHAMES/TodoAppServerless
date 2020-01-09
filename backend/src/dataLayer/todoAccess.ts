@@ -10,7 +10,10 @@ export class TodoAccess {
   constructor(
     private readonly docClient: DocumentClient = createDynamoDBClient(),
 
-    private readonly todosTable = process.env.TODOS_TABLE //private readonly bucketName = process.env.TODOS_S3_BUCKET, //private readonly expires = process.env.SIGNED_URL_EXPIRATION, //private readonly thumbnailBucketName = process.env.THUMBNAILS_S3_BUCKET, //private readonly region = process.env.BUCKET_REGION
+    private readonly todosTable = process.env.TODOS_TABLE,
+    private readonly bucketName = process.env.TODOS_S3_BUCKET,
+    private readonly expires = process.env.SIGNED_URL_EXPIRATION, //private readonly thumbnailBucketName = process.env.THUMBNAILS_S3_BUCKET,
+    private readonly region = process.env.BUCKET_REGION
   ) {}
 
   async getUserTodos(userId: string): Promise<TodoItem[]> {
@@ -64,6 +67,40 @@ export class TodoAccess {
     }
 
     await this.docClient.update(params).promise()
+  }
+
+  async deleteUserTodo(todoId: string, userId: string) {
+    var params = {
+      TableName: this.todosTable,
+      Key: {
+        todoId: todoId
+      },
+      ConditionExpression: 'todoId = :todoId and userId = :userId',
+      ExpressionAttributeValues: {
+        ':todoId': todoId,
+        ':userId': userId
+      }
+    }
+
+    await this.docClient.delete(params).promise()
+  }
+
+  generateUploadUrl(todoId: string): string {
+    const s3 = new XAWS.S3({
+      signatureVersion: 'v4',
+      region: this.region,
+      params: { Bucket: this.bucketName }
+    })
+
+    var params = {
+      Bucket: this.bucketName,
+      Key: todoId,
+      Expires: parseInt(this.expires)
+    }
+
+    //logger.info('UrlUpload Param', params)
+
+    return s3.getSignedUrl('putObject', params)
   }
 }
 
