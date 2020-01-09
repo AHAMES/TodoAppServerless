@@ -50,16 +50,16 @@ export class TodoAccess {
         todoId: todoId
       },
       ConditionExpression: 'todoId = :todoId and userId = :userId',
-      UpdateExpression: 'set #name = :r, dueDate=:p, done=:a',
+      UpdateExpression: 'set #name = :name, dueDate=:due, done=:done',
       ExpressionAttributeNames: {
         '#name': 'name'
       },
       ExpressionAttributeValues: {
         ':todoId': todoId,
         ':userId': userId,
-        ':r': todo.name,
-        ':p': todo.dueDate,
-        ':a': todo.done
+        ':name': todo.name,
+        ':due': todo.dueDate,
+        ':done': todo.done
       }
     }
 
