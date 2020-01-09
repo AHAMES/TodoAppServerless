@@ -25,27 +25,27 @@ custom:
 
 provider:
   name: aws
-  runtime: nodejs8.10
+  runtime: nodejs12.x
 
   stage: ${opt:stage, 'dev'}
   region: ${opt:region, 'us-east-1'}
 
   environment:
-    TODOS_TABLE: Todos-$(self:provider.stage)
+    TODOS_TABLE: Todos-${self:provider.stage}
     TODOS_S3_BUCKET: ahs-todos-serverless-${self:provider.stage}
     TODO_ID_INDEX: UserIdIndex
     SIGNED_URL_EXPIRATION: 300
-    iamRoleStatements:
-      - Effect: Allow
-        Action:
-          - s3:PutObject
-          - s3:GetObject
-        Resource: arn:aws:s3:::${self:provider.environment.TODOS_S3_BUCKET}/*
-      - Effect: Allow
-        Action:
-          - xray:PutTraceSegments
-        Resource:
-          - '*'
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - s3:PutObject
+        - s3:GetObject
+      Resource: arn:aws:s3:::${self:provider.environment.TODOS_S3_BUCKET}/*
+    - Effect: Allow
+      Action:
+        - xray:PutTraceSegments
+      Resource:
+        - '*'
 functions:
   Auth:
     handler: src/lambda/auth/auth0Authorizer.handler
