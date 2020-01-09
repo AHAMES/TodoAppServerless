@@ -32,7 +32,6 @@ provider:
 
   environment:
     TODOS_TABLE: Todos-$(self:provider.stage)
-    USERS_TODO_TABLE: Users-Todo-${self:provider.stage}
     TODOS_S3_BUCKET: ahs-todos-serverless-${self:provider.stage}
     TODO_ID_INDEX: UserIdIndex
     THUMBNAILS_S3_BUCKET: ahs-todos-thumbnails-${self:provider.stage}
@@ -70,11 +69,9 @@ functions:
       - Effect: Allow
         Action:
           - dynamodb:Scan
-        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
-      - Effect: Allow
-        Action:
           - dynamodb:Query
-        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.USERS_TODO_TABLE}/index/${self:provider.environment.TODO_ID_INDEX}
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
+
   # TODO: Configure this function
 
   CreateTodo:
@@ -98,10 +95,6 @@ functions:
         Action:
           - dynamodb:PutItem
         Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
-      - Effect: Allow
-        Action:
-          - dynamodb:PutItem
-        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.USERS_TODO_TABLE}
   # TODO: Configure this function
   UpdateTodo:
     handler: src/lambda/http/updateTodo.handler
@@ -109,6 +102,21 @@ functions:
       - http:
           method: patch
           path: todos/{todoId}
+          authorizer: Auth
+          cors: true
+          reqValidatorName: RequestBodyValidator
+          documentation:
+            summary: Update todo
+            description: Update a todo item
+            requestModels:
+              'application/json': UpdateTodoRequest
+
+    iamRoleStatementsInherit: true
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:UpdateItem
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
 
   # TODO: Configure this function
   DeleteTodo:
@@ -149,21 +157,9 @@ resources:
           - AttributeName: todoId
             KeyType: HASH
         BillingMode: PAY_PER_REQUEST
+        #StreamSpecification:
+        #StreamViewType: NEW_IMAGE
         TableName: ${self:provider.environment.TODOS_TABLE}
-
-    UsersTodosDynamoDBTable:
-      Type: AWS::DynamoDB::Table
-      Properties:
-        AttributeDefinitions:
-          - AttributeName: todoId
-            AttributeType: S
-        KeySchema:
-          - AttributeName: todoId
-            KeyType: HASH
-        BillingMode: PAY_PER_REQUEST
-        StreamSpecification:
-          StreamViewType: NEW_IMAGE
-        TableName: ${self:provider.environment.USERS_TODO_TABLE}
         GlobalSecondaryIndexes:
           - IndexName: ${self:provider.environment.TODO_ID_INDEX}
             KeySchema:

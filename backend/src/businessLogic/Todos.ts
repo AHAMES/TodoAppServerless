@@ -1,5 +1,6 @@
 import { TodoItem } from '../models/TodoItem'
 import { TodoAccess } from '../dataLayer/todoAccess'
+import { TodoUpdate } from '../models/TodoUpdate'
 //import { CreateGroupRequest } from '../requests/CreateGroupRequest'
 import { parseUserId } from '../auth/utils'
 
@@ -17,4 +18,14 @@ export async function createTodo(
   const userId = parseUserId(jwtToken)
   newItem.userId = userId
   return await todoAccess.createTodo(newItem)
+}
+
+export async function updateUserTodo(
+  todo: TodoUpdate,
+  todoId: string,
+  jwtToken: string
+) {
+  const userId = parseUserId(jwtToken)
+
+  await todoAccess.updateUserTodo(todo, todoId, userId)
 }
