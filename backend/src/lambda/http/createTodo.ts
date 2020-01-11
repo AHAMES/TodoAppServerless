@@ -29,7 +29,8 @@ export const handler: APIGatewayProxyHandler = async (
     name: newTodo.name,
     dueDate: newTodo.dueDate,
     done: false,
-    attachmentUrl: null
+    attachmentUrl:
+      'https://image.shutterstock.com/image-illustration/missing-image-illustration-no-available-260nw-1195378411.jpg'
   }
   const newItem: TodoItem = await createTodo(ItemDetails, jwtToken)
 

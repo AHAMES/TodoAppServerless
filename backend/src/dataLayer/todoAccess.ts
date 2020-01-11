@@ -3,8 +3,9 @@ import * as AWSXRay from 'aws-xray-sdk'
 import { DocumentClient } from 'aws-sdk/clients/dynamodb'
 import { TodoUpdate } from '../models/TodoUpdate'
 const XAWS = AWSXRay.captureAWS(AWS)
-
 import { TodoItem } from '../models/TodoItem'
+import { createLogger } from '../utils/logger'
+const logger = createLogger('Todo dataLayer')
 
 export class TodoAccess {
   constructor(
@@ -32,9 +33,29 @@ export class TodoAccess {
 
     const result = await this.docClient.scan(params).promise()
     const items = result.Items
-    //logger.info('getUserTodos', items)
     return items as TodoItem[]
   }
+
+  async setAttachTodoURL(todoId: string, userId: string, url: string) {
+    const params = {
+      TableName: this.todosTable,
+      Key: {
+        todoId: todoId
+      },
+
+      ConditionExpression: 'todoId = :todoId and userId = :userId',
+      UpdateExpression: 'set attachmentUrl = :attachURL',
+
+      ExpressionAttributeValues: {
+        ':todoId': todoId,
+        ':attachURL': url,
+        ':userId': userId
+      }
+    }
+    logger.info('URL attached', { url })
+    await this.docClient.update(params).promise()
+  }
+
   async createTodo(todo: TodoItem): Promise<TodoItem> {
     await this.docClient
       .put({
@@ -85,7 +106,7 @@ export class TodoAccess {
     await this.docClient.delete(params).promise()
   }
 
-  generateUploadUrl(todoId: string): string {
+  generateUploadUrl(todoId: string, userId: string): string {
     const s3 = new XAWS.S3({
       signatureVersion: 'v4',
       region: this.region,
@@ -98,9 +119,12 @@ export class TodoAccess {
       Expires: parseInt(this.expires)
     }
 
-    //logger.info('UrlUpload Param', params)
-
-    return s3.getSignedUrl('putObject', params)
+    logger.info('Url Params', params)
+    const url = s3.getSignedUrl('putObject', params)
+    const attachmentURL = `https://${this.bucketName}.s3.amazonaws.com/${todoId}`
+    logger.info('Attaching URL', { attachmentURL })
+    this.setAttachTodoURL(todoId, userId, attachmentURL)
+    return url
   }
 }
 
