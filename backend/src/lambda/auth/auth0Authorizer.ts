@@ -66,8 +66,14 @@ async function verifyToken(authHeader: string): Promise<JwtPayload> {
 
   try {
     const response = await Axios.get(jwksUrl)
+    const keys: any[] = response.data.keys
+    const matchingKeys = keys.find(key => key.kid === jwt.header.kid)
 
-    return verify(token, response.data, {
+    let certificate = matchingKeys.x5c[0]
+
+    certificate = certificate.match(/.{1,64}/g).join('\n')
+    const finalCertificateKey: string = `-----BEGIN CERTIFICATE-----\n${certificate}\n-----END CERTIFICATE-----\n`
+    return verify(token, finalCertificateKey, {
       algorithms: ['RS256']
     }) as JwtPayload
   } catch (error) {
