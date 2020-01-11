@@ -6,6 +6,9 @@ import { parseUserId } from '../auth/utils'
 
 const todoAccess = new TodoAccess()
 
+import { createLogger } from '../utils/logger'
+const logger = createLogger('Todo logic')
+
 export async function getUserTodos(jwtToken) {
   const userId = parseUserId(jwtToken)
   return await todoAccess.getUserTodos(userId)
@@ -26,7 +29,7 @@ export async function updateUserTodo(
   jwtToken: string
 ) {
   const userId = parseUserId(jwtToken)
-
+  logger.info('userId in update user', { userId })
   await todoAccess.updateUserTodo(todo, todoId, userId)
 }
 export async function deleteUserTodos(todoId, jwtToken) {
@@ -34,7 +37,7 @@ export async function deleteUserTodos(todoId, jwtToken) {
   await todoAccess.deleteUserTodo(todoId, userId)
 }
 
-export function generateUploadUrl(todoId: string, jwtToken): string {
+export async function generateUploadUrl(todoId: string, jwtToken) {
   const userId = parseUserId(jwtToken)
-  return todoAccess.generateUploadUrl(todoId, userId)
+  return await todoAccess.generateUploadUrl(todoId, userId)
 }

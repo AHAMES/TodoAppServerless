@@ -20,40 +20,16 @@ export class TodoAccess {
   async getUserTodos(userId: string): Promise<TodoItem[]> {
     var params = {
       TableName: this.todosTable,
-      ProjectionExpression:
-        'todoId, createdAt, #name, dueDate, done, attachmentUrl',
-      FilterExpression: 'userId = :userId',
-      ExpressionAttributeNames: {
-        '#name': 'name'
-      },
+      KeyConditionExpression: 'userId = :userId',
+
       ExpressionAttributeValues: {
         ':userId': userId
       }
     }
 
-    const result = await this.docClient.scan(params).promise()
+    const result = await this.docClient.query(params).promise()
     const items = result.Items
     return items as TodoItem[]
-  }
-
-  async setAttachTodoURL(todoId: string, userId: string, url: string) {
-    const params = {
-      TableName: this.todosTable,
-      Key: {
-        todoId: todoId
-      },
-
-      ConditionExpression: 'todoId = :todoId and userId = :userId',
-      UpdateExpression: 'set attachmentUrl = :attachURL',
-
-      ExpressionAttributeValues: {
-        ':todoId': todoId,
-        ':attachURL': url,
-        ':userId': userId
-      }
-    }
-    logger.info('URL attached', { url })
-    await this.docClient.update(params).promise()
   }
 
   async createTodo(todo: TodoItem): Promise<TodoItem> {
@@ -71,22 +47,22 @@ export class TodoAccess {
     const params = {
       TableName: this.todosTable,
       Key: {
+        userId: userId,
         todoId: todoId
       },
-      ConditionExpression: 'todoId = :todoId and userId = :userId',
-      UpdateExpression: 'set #name = :name, dueDate=:due, done=:done',
+      UpdateExpression: 'set #nam = :a, dueDate=:b, done=:c',
       ExpressionAttributeNames: {
-        '#name': 'name'
+        '#nam': 'name'
       },
       ExpressionAttributeValues: {
         ':todoId': todoId,
         ':userId': userId,
-        ':name': todo.name,
-        ':due': todo.dueDate,
-        ':done': todo.done
+        ':a': todo.name,
+        ':b': todo.dueDate,
+        ':c': todo.done
       }
     }
-
+    logger.info('attempting to add data', params)
     await this.docClient.update(params).promise()
   }
 
@@ -94,19 +70,35 @@ export class TodoAccess {
     var params = {
       TableName: this.todosTable,
       Key: {
+        userId: userId,
         todoId: todoId
-      },
-      ConditionExpression: 'todoId = :todoId and userId = :userId',
-      ExpressionAttributeValues: {
-        ':todoId': todoId,
-        ':userId': userId
       }
     }
 
     await this.docClient.delete(params).promise()
   }
+  async setAttachTodoURL(todoId: string, userId: string) {
+    const attachmentURL = `https://${this.bucketName}.s3.amazonaws.com/${todoId}`
+    logger.info('Attaching URL', { attachmentURL })
+    const params = {
+      TableName: this.todosTable,
+      Key: {
+        userId: userId,
+        todoId: todoId
+      },
 
-  generateUploadUrl(todoId: string, userId: string): string {
+      UpdateExpression: 'set #a = :attachURL',
+      ExpressionAttributeNames: { '#a': 'attachmentUrl' },
+      ExpressionAttributeValues: {
+        ':attachURL': attachmentURL
+      }
+    }
+    logger.info('URL attached', { attachmentURL })
+    const res = await this.docClient.update(params).promise()
+    logger.info('response', res)
+  }
+
+  async generateUploadUrl(todoId: string, userId: string): Promise<string> {
     const s3 = new XAWS.S3({
       signatureVersion: 'v4',
       region: this.region,
@@ -120,10 +112,9 @@ export class TodoAccess {
     }
 
     logger.info('Url Params', params)
-    const url = s3.getSignedUrl('putObject', params)
-    const attachmentURL = `https://${this.bucketName}.s3.amazonaws.com/${todoId}`
-    logger.info('Attaching URL', { attachmentURL })
-    this.setAttachTodoURL(todoId, userId, attachmentURL)
+    const url = await s3.getSignedUrl('putObject', params)
+
+    this.setAttachTodoURL(todoId, userId)
     return url
   }
 }

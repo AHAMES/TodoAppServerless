@@ -8,6 +8,8 @@ import {
 
 import { UpdateTodoRequest } from '../../requests/UpdateTodoRequest'
 import { updateUserTodo } from '../../businessLogic/todos'
+import { createLogger } from '../../utils/logger'
+const logger = createLogger('update todo')
 
 export const handler: APIGatewayProxyHandler = async (
   event: APIGatewayProxyEvent
@@ -17,10 +19,14 @@ export const handler: APIGatewayProxyHandler = async (
 
   // TODO: Update a TODO item with the provided id using values in the "updatedTodo" object
   const authorization = event.headers.Authorization
-  const split = authorization.split(' ')
-  const jwtToken = split[1]
 
-  const item = await updateUserTodo(
+  logger.info('Authorization:', { authorization })
+  const split = authorization.split(' ')
+  logger.info('Split', { split })
+  const jwtToken = split[1]
+  logger.info('Token', { jwtToken })
+
+  await updateUserTodo(
     {
       name: updatedTodo.name,
       dueDate: updatedTodo.dueDate,
@@ -35,8 +41,6 @@ export const handler: APIGatewayProxyHandler = async (
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Credentials': true
     },
-    body: JSON.stringify({
-      item
-    })
+    body: ''
   }
 }

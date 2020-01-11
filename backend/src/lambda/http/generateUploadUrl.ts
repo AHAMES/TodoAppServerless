@@ -13,13 +13,12 @@ export const handler: APIGatewayProxyHandler = async (
 ): Promise<APIGatewayProxyResult> => {
   const todoId = event.pathParameters.todoId
 
+  // TODO: Return a presigned URL to upload a file for a TODO item with the provided id
   const authorization = event.headers.Authorization
   const split = authorization.split(' ')
   const jwtToken = split[1]
-  // TODO: Return a presigned URL to upload a file for a TODO item with the provided id
-
-  const url: string = generateUploadUrl(todoId, jwtToken)
-  logger.info('Url ',{ url})
+  const url: string = await generateUploadUrl(todoId, jwtToken)
+  logger.info('Url ', { url })
   return {
     statusCode: 201,
     headers: {
