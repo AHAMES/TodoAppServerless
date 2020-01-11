@@ -41,3 +41,8 @@ export async function generateUploadUrl(todoId: string, jwtToken) {
   const userId = parseUserId(jwtToken)
   return await todoAccess.generateUploadUrl(todoId, userId)
 }
+
+export async function setAttachmentURL(todoId: string, jwtToken) {
+  const userId = parseUserId(jwtToken)
+  await todoAccess.setAttachTodoURL(todoId, userId)
+}
