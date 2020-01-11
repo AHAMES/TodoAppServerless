@@ -4,6 +4,8 @@ service:
 plugins:
   - serverless-webpack
   - serverless-iam-roles-per-function
+  - serverless-reqvalidator-plugin
+  - serverless-aws-documentation
 
 custom:
   webpack:
@@ -27,6 +29,10 @@ provider:
   name: aws
   runtime: nodejs12.x
 
+  tracing:
+    lambda: true
+    apiGateway: true
+
   stage: ${opt:stage, 'dev'}
   region: ${opt:region, 'us-east-1'}
 
@@ -34,6 +40,8 @@ provider:
     TODOS_TABLE: Todos-${self:provider.stage}
     TODOS_S3_BUCKET: ahs-todos-serverless-${self:provider.stage}
     TODO_ID_INDEX: UserIdIndex
+
+    BUCKET_REGION: ${self:provider.region}
     SIGNED_URL_EXPIRATION: 300
   iamRoleStatements:
     - Effect: Allow
@@ -118,6 +126,7 @@ functions:
           method: delete
           path: todos/{todoId}
           cors: true
+          authorizer: Auth
     iamRoleStatementsInherit: true
     iamRoleStatements:
       - Effect: Allow
@@ -132,7 +141,9 @@ functions:
       - http:
           method: post
           path: todos/{todoId}/attachment
-
+          authorizer: Auth
+          cors: true
+    iamRoleStatementsInherit: true
 resources:
   Resources:
     GatewayResponseDefault4XX:
