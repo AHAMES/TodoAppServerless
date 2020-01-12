@@ -36,10 +36,11 @@ export const handler: APIGatewayProxyHandler = async (
     jwtToken
   )
   return {
-    statusCode: 201,
+    statusCode: 204,
     headers: {
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Credentials': true
+      'Access-Control-Allow-Credentials': true,
+      'Access-Control-Allow-Methods': 'GET, PUT, POST, DELETE, HEAD'
     },
     body: ''
   }

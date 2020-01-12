@@ -56,8 +56,7 @@ export class TodoAccess {
         '#nam': 'name'
       },
       ExpressionAttributeValues: {
-        ':todoId': todoId,
-        ':userId': userId,
+
         ':a': todo.name,
         ':b': todo.dueDate,
         ':c': todo.done
@@ -78,7 +77,7 @@ export class TodoAccess {
 
     await this.docClient.delete(params).promise()
   }
-  async setAttachTodoURL(todoId: string, userId: string) {
+  /*async setAttachTodoURL(todoId: string, userId: string) {
     const attachmentURL = `https://${this.bucketName}.s3.amazonaws.com/${todoId}`
     logger.info('Attaching URL', { attachmentURL })
     const params = {
@@ -97,7 +96,7 @@ export class TodoAccess {
     logger.info('URL attached', { attachmentURL })
     const res = await this.docClient.update(params).promise()
     logger.info('response', res)
-  }
+  }*/
 
   async generateUploadUrl(todoId: string, userId: string): Promise<string> {
     const s3 = new XAWS.S3({
@@ -114,8 +113,8 @@ export class TodoAccess {
 
     logger.info('Url Params', params)
     const url = await s3.getSignedUrl('putObject', params)
-
-    this.setAttachTodoURL(todoId, userId)
+    logger.info('generateUrl done', userId)
+    //this.setAttachTodoURL(todoId, userId)
     return url
   }
 }

@@ -1,5 +1,7 @@
 import 'source-map-support/register'
-import { generateUploadUrl, setAttachmentURL } from '../../businessLogic/todos'
+import {
+  generateUploadUrl /*, setAttachmentURL */
+} from '../../businessLogic/todos'
 import { createLogger } from '../../utils/logger'
 import {
   APIGatewayProxyEvent,
@@ -18,7 +20,7 @@ export const handler: APIGatewayProxyHandler = async (
   const split = authorization.split(' ')
   const jwtToken = split[1]
   const url: string = await generateUploadUrl(todoId, jwtToken)
-  await setAttachmentURL(todoId, jwtToken)
+  //await setAttachmentURL(todoId, jwtToken)
   logger.info('Url ', { url })
   return {
     statusCode: 201,
