@@ -6,9 +6,11 @@ import {
   APIGatewayProxyHandler
 } from 'aws-lambda'
 
-import { getUserTodos } from '../../businessLogic/Todos'
+import { getTodos } from '../../businessLogic/Todos'
 import { TodoItem } from '../../models/TodoItem'
 
+import { createLogger } from '../../utils/logger'
+const logger = createLogger('UploadUrl')
 export const handler: APIGatewayProxyHandler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
@@ -17,10 +19,12 @@ export const handler: APIGatewayProxyHandler = async (
   const authorization = event.headers.Authorization
   const split = authorization.split(' ')
   const jwtToken = split[1]
+  logger.info('getting item for the user')
 
-  const userTodoItems: TodoItem[] = await getUserTodos(jwtToken)
-  const items = JSON.parse(JSON.stringify(userTodoItems))
+  const TodoItems: TodoItem[] = await getTodos(jwtToken)
+  const items = JSON.parse(JSON.stringify(TodoItems))
 
+  logger.info('Items retrieved ' + items)
   return {
     statusCode: 200,
     headers: {

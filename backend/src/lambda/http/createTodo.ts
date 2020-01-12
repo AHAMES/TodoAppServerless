@@ -36,7 +36,7 @@ export const handler: APIGatewayProxyHandler = async (
   }
   const newItem: TodoItem = await createTodo(ItemDetails, jwtToken)
 
-  logger.info('attempt succeeded', newTodo)
+  logger.info('created Item', newTodo)
   return {
     statusCode: 201,
     headers: {

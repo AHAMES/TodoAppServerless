@@ -9,9 +9,10 @@ const todoAccess = new TodoAccess()
 import { createLogger } from '../utils/logger'
 const logger = createLogger('Todo logic')
 
-export async function getUserTodos(jwtToken) {
+export async function getTodos(jwtToken) {
   const userId = parseUserId(jwtToken)
-  return await todoAccess.getUserTodos(userId)
+  logger.info('getTodos: Check userID ' + userId)
+  return await todoAccess.getTodos(userId)
 }
 
 export async function createTodo(
@@ -19,26 +20,29 @@ export async function createTodo(
   jwtToken: string
 ): Promise<TodoItem> {
   const userId = parseUserId(jwtToken)
+  logger.info('createTodo: Check userID ' + userId)
   newItem.userId = userId
   return await todoAccess.createTodo(newItem)
 }
 
-export async function updateUserTodo(
+export async function updateTodo(
   todo: TodoUpdate,
   todoId: string,
   jwtToken: string
 ) {
   const userId = parseUserId(jwtToken)
-  logger.info('userId in update user', { userId })
-  await todoAccess.updateUserTodo(todo, todoId, userId)
+  logger.info('UpdateTodo: CheckuserID ' + userId)
+  await todoAccess.updateTodo(todo, todoId, userId)
 }
-export async function deleteUserTodos(todoId, jwtToken) {
+export async function deleteTodos(todoId, jwtToken) {
   const userId = parseUserId(jwtToken)
-  await todoAccess.deleteUserTodo(todoId, userId)
+  logger.info('deleteTodos: CheckuserID ' + userId)
+  await todoAccess.deleteTodo(todoId, userId)
 }
 
 export async function generateUploadUrl(todoId: string, jwtToken) {
   const userId = parseUserId(jwtToken)
+  logger.info('GenerateUrl: CheckuserID ' + userId)
   return await todoAccess.generateUploadUrl(todoId, userId)
 }
 

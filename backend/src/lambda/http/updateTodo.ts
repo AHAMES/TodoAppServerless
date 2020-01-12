@@ -7,9 +7,9 @@ import {
 } from 'aws-lambda'
 
 import { UpdateTodoRequest } from '../../requests/UpdateTodoRequest'
-import { updateUserTodo } from '../../businessLogic/todos'
+import { updateTodo } from '../../businessLogic/todos'
 import { createLogger } from '../../utils/logger'
-const logger = createLogger('update todo')
+const logger = createLogger('update todo endpoint')
 
 export const handler: APIGatewayProxyHandler = async (
   event: APIGatewayProxyEvent
@@ -20,13 +20,11 @@ export const handler: APIGatewayProxyHandler = async (
   // TODO: Update a TODO item with the provided id using values in the "updatedTodo" object
   const authorization = event.headers.Authorization
 
-  logger.info('Authorization:', { authorization })
   const split = authorization.split(' ')
-  logger.info('Split', { split })
   const jwtToken = split[1]
-  logger.info('Token', { jwtToken })
 
-  await updateUserTodo(
+  logger.info('attempting to update an item', updatedTodo)
+  await updateTodo(
     {
       name: updatedTodo.name,
       dueDate: updatedTodo.dueDate,
@@ -35,6 +33,7 @@ export const handler: APIGatewayProxyHandler = async (
     todoId,
     jwtToken
   )
+  logger.info('updated item', { todoId })
   return {
     statusCode: 204,
     headers: {

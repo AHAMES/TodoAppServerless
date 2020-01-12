@@ -17,7 +17,7 @@ export class TodoAccess {
     private readonly region = process.env.BUCKET_REGION
   ) {}
 
-  async getUserTodos(userId: string): Promise<TodoItem[]> {
+  async getTodos(userId: string): Promise<TodoItem[]> {
     var params = {
       TableName: this.todosTable,
       KeyConditionExpression: 'userId = :userId',
@@ -27,24 +27,32 @@ export class TodoAccess {
       }
     }
 
+    logger.info(
+      'getTodos: userID ' + userId + ' attempting to retreive user todos'
+    )
     const result = await this.docClient.query(params).promise()
     const items = result.Items
+    logger.info('Items retrieved', items)
     return items as TodoItem[]
   }
 
   async createTodo(todo: TodoItem): Promise<TodoItem> {
     todo.attachmentUrl = `https://${this.bucketName}.s3.amazonaws.com/${todo.todoId}`
+    logger.info(
+      'createTodo: userID ' + todo.userId + ' attempting to create todo'
+    )
     await this.docClient
       .put({
         TableName: this.todosTable,
         Item: todo
       })
       .promise()
-
+    logger.info('item created', todo)
     return todo
   }
 
-  async updateUserTodo(todo: TodoUpdate, todoId: string, userId: string) {
+  async updateTodo(todo: TodoUpdate, todoId: string, userId: string) {
+    logger.info('updateTodo: userID ' + userId + ' attempting to update todo')
     const params = {
       TableName: this.todosTable,
       Key: {
@@ -56,17 +64,17 @@ export class TodoAccess {
         '#nam': 'name'
       },
       ExpressionAttributeValues: {
-
         ':a': todo.name,
         ':b': todo.dueDate,
         ':c': todo.done
       }
     }
-    logger.info('attempting to add data', params)
     await this.docClient.update(params).promise()
+    logger.info('updated Todo', todo)
   }
 
-  async deleteUserTodo(todoId: string, userId: string) {
+  async deleteTodo(todoId: string, userId: string) {
+    logger.info('deleteTodo: userID ' + userId + ' attempting to delete todo')
     var params = {
       TableName: this.todosTable,
       Key: {
@@ -76,6 +84,7 @@ export class TodoAccess {
     }
 
     await this.docClient.delete(params).promise()
+    logger.info('deleted todo id: ' + todoId)
   }
   /*async setAttachTodoURL(todoId: string, userId: string) {
     const attachmentURL = `https://${this.bucketName}.s3.amazonaws.com/${todoId}`
@@ -111,9 +120,9 @@ export class TodoAccess {
       Expires: parseInt(this.expires)
     }
 
-    logger.info('Url Params', params)
+    logger.info('generateUploadUrl Params ', params)
     const url = await s3.getSignedUrl('putObject', params)
-    logger.info('generateUrl done', userId)
+    logger.info('generated URL for user ' + userId, { url })
     //this.setAttachTodoURL(todoId, userId)
     return url
   }
